@@ -1,0 +1,40 @@
+#[DIRECTORY]: HIDE
+.mimocode/
+.caches/
+.cache/
+.vscode/
+.idea/
+.clangd/
+
+#[DIRECTORY]: NORMAL
+output/
+build/
+cmake-build-*/
+logs/
+documents/
+
+#[FILE]: HIDE
+.mimo*
+compile_commands.json
+.cache_layout
+local.require.cmake
+
+#[FILE]: NORMAL
+taskbook.txt
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.exe
+*.out
+*.d
+*.gcda
+*.gcno
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+build.ninja
+.ninja_deps
+.ninja_log
