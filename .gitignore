@@ -7,11 +7,21 @@
 .clangd/
 
 #[DIRECTORY]: NORMAL
-output/
 build/
 cmake-build-*/
-logs/
 documents/
+
+# Keep empty tree for logs/output; ignore all files inside.
+logs/*
+!logs/.gitkeep
+!logs/compilation/
+logs/compilation/*
+!logs/compilation/.gitkeep
+output/*
+!output/.gitkeep
+!output/bin/
+output/bin/*
+!output/bin/.gitkeep
 
 #[FILE]: HIDE
 .mimo*
