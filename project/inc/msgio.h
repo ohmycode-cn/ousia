@@ -17,14 +17,23 @@ enum color_string {
   WHITE = 8
 };
 
-typedef void (*fnv)(const char *msg, bool color, enum color_string);
-typedef char *(*fnc)(const char *msg, bool color, enum color_string);
-
-struct MSGIO {
-  fnv msgio_v; // Print output content, v is return void
-  fnc msgio_c; // Return string content, c is return char *
+struct MSGIO_ARGS {
+  const char *clr_prefix;
+  const char *clr_body;
+  const char *msg_prefix;
+  const char *msg_body;
+  bool clr_on;
+  bool fmt_on;
 };
 
-static const struct MSGIO msgio_ops;
+typedef void (*fnv)(struct MSGIO_ARGS args);
+typedef char *(*fnc)(struct MSGIO_ARGS args);
 
-#endif // OUSIA_MSGIO_H
+struct MSGIO {
+  fnv msgio_v; /* Print output content, v is return void */
+  fnc msgio_c; /* Return string content, c is return char * */
+};
+
+extern const struct MSGIO msgio_ops;
+
+#endif /* OUSIA_MSGIO_H */
