@@ -17,11 +17,11 @@ _DEFAULT_TEST_INC="project/test/inc"
 # parsed state (extend here when adding options)
 _OPT_PATH=""
 _OPT_FILE=""
-_OPT_TYPE_SET=0  # 1 if --type was provided
-_OPT_TYPE=""     # --type value: "" | default | test
-_OPT_NOT_H=0   # --not-h: create .c instead of .h
-_OPT_RMS=""    # --rms  : delete paired .h and .c (no suffix)
-_OPT_RM=""     # --rm   : delete single file (with .h/.c suffix)
+_OPT_TYPE_SET=0 # 1 if --type was provided
+_OPT_TYPE=""    # --type value: "" | default | test
+_OPT_NOT_H=0    # --not-h: create .c instead of .h
+_OPT_RMS=""     # --rms  : delete paired .h and .c (no suffix)
+_OPT_RM=""      # --rm   : delete single file (with .h/.c suffix)
 _OPT_HELP=0
 
 function Welcome() {
@@ -35,13 +35,13 @@ function UseTestDirs() {
 
 function ValidateTypeValue() {
   case "${_OPT_TYPE}" in
-    ""|default|test)
-      return 0
-      ;;
-    *)
-      MsgError "Invalid --type value: '${_OPT_TYPE}' (use \"\", default, or test)"
-      return 1
-      ;;
+  "" | default | test)
+    return 0
+    ;;
+  *)
+    MsgError "Invalid --type value: '${_OPT_TYPE}' (use \"\", default, or test)"
+    return 1
+    ;;
   esac
 }
 
@@ -57,10 +57,11 @@ function HelpIni() {
   MsgInfo "     Test dirs:       ${_DEFAULT_TEST_INC} (.h) / ${_DEFAULT_TEST_SRC} (.c)"
   MsgInfo "Command:"
   MsgInfo "     --path(-p) <dir>"
-  MsgInfo "                     Target directory under project/"
-  MsgInfo "                     Create: if --type test and path is not test/*,"
-  MsgInfo "                     it is prefixed as project/test/<path>"
-  MsgInfo "                     Delete (--rms/--rm): --path wins, --type is ignored"
+  MsgInfo "                     Sub-directory under the layout roots:"
+  MsgInfo "                       default: project/inc/<dir>, project/src/<dir>"
+  MsgInfo "                       test:    project/test/inc/<dir>, project/test/src/<dir>"
+  MsgInfo "                     Dirs are created if missing"
+  MsgInfo "                     Absolute or project/* paths are used as-is"
   MsgInfo "     --file(-f) <name>"
   MsgInfo "                     Create file base name, no suffix"
   MsgInfo "     --type(-t) <value>"
@@ -126,163 +127,149 @@ function HelpIni() {
 function ParseArgs() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --path|--p)
-        if [[ $# -lt 2 ]]; then
-          MsgError "Option '$1' requires a value"
-          return 1
-        fi
-        _OPT_PATH="$2"
+    --path | --p)
+      if [[ $# -lt 2 ]]; then
+        MsgError "Option '$1' requires a value"
+        return 1
+      fi
+      _OPT_PATH="$2"
+      shift 2
+      ;;
+    --path=*)
+      _OPT_PATH="${1#*=}"
+      shift
+      ;;
+    --file | --f)
+      if [[ $# -lt 2 ]]; then
+        MsgError "Option '$1' requires a value"
+        return 1
+      fi
+      _OPT_FILE="$2"
+      shift 2
+      ;;
+    --file=*)
+      _OPT_FILE="${1#*=}"
+      shift
+      ;;
+    --type | --t)
+      if [[ $# -ge 2 && "$2" != -* ]]; then
+        _OPT_TYPE="$2"
+        _OPT_TYPE_SET=1
         shift 2
-        ;;
-      --path=*)
-        _OPT_PATH="${1#*=}"
-        shift
-        ;;
-      --file|--f)
-        if [[ $# -lt 2 ]]; then
-          MsgError "Option '$1' requires a value"
-          return 1
-        fi
-        _OPT_FILE="$2"
-        shift 2
-        ;;
-      --file=*)
-        _OPT_FILE="${1#*=}"
-        shift
-        ;;
-      --type|--t)
-        if [[ $# -ge 2 && "$2" != -* ]]; then
-          _OPT_TYPE="$2"
-          _OPT_TYPE_SET=1
-          shift 2
-        else
-          # bare --type: backward-compatible alias for --type test
-          _OPT_TYPE="test"
-          _OPT_TYPE_SET=1
-          shift
-        fi
-        ;;
-      --type=*)
-        _OPT_TYPE="${1#*=}"
+      else
+        # bare --type: backward-compatible alias for --type test
+        _OPT_TYPE="test"
         _OPT_TYPE_SET=1
         shift
-        ;;
-      --not-h)
-        _OPT_NOT_H=1
-        shift
-        ;;
-      --rms)
-        if [[ $# -lt 2 ]]; then
-          MsgError "Option '$1' requires a value"
-          return 1
-        fi
-        _OPT_RMS="$2"
-        shift 2
-        ;;
-      --rms=*)
-        _OPT_RMS="${1#*=}"
-        shift
-        ;;
-      --rm)
-        if [[ $# -lt 2 ]]; then
-          MsgError "Option '$1' requires a value"
-          return 1
-        fi
-        _OPT_RM="$2"
-        shift 2
-        ;;
-      --rm=*)
-        _OPT_RM="${1#*=}"
-        shift
-        ;;
-      --help|-h)
-        _OPT_HELP=1
-        shift
-        ;;
-      *)
-        MsgError "Unknown option: $1"
-        HelpIni
+      fi
+      ;;
+    --type=*)
+      _OPT_TYPE="${1#*=}"
+      _OPT_TYPE_SET=1
+      shift
+      ;;
+    --not-h)
+      _OPT_NOT_H=1
+      shift
+      ;;
+    --rms)
+      if [[ $# -lt 2 ]]; then
+        MsgError "Option '$1' requires a value"
         return 1
-        ;;
+      fi
+      _OPT_RMS="$2"
+      shift 2
+      ;;
+    --rms=*)
+      _OPT_RMS="${1#*=}"
+      shift
+      ;;
+    --rm)
+      if [[ $# -lt 2 ]]; then
+        MsgError "Option '$1' requires a value"
+        return 1
+      fi
+      _OPT_RM="$2"
+      shift 2
+      ;;
+    --rm=*)
+      _OPT_RM="${1#*=}"
+      shift
+      ;;
+    --help | -h)
+      _OPT_HELP=1
+      shift
+      ;;
+    *)
+      MsgError "Unknown option: $1"
+      HelpIni
+      return 1
+      ;;
     esac
   done
   return 0
 }
 
-function ResolveBaseDir() {
+# Join --path under the layout root.
+# Relative path: <root>/<path>  (e.g. --path dev -> project/inc/dev)
+# Absolute or project/*: used as-is (explicit full path).
+function JoinPathUnderRoot() {
+  local root="$1"
   local path="${_OPT_PATH}"
 
-  if [[ -n "${path}" ]]; then
-    path="${path#./}"
-    if [[ "${path}" == /* || "${path}" == project/* ]]; then
-      printf '%s\n' "${path}"
-      return 0
-    fi
-    if UseTestDirs && [[ "${path}" != test/* ]]; then
-      printf 'project/test/%s\n' "${path}"
-      return 0
-    fi
-    printf 'project/%s\n' "${path}"
+  path="${path#./}"
+  if [[ "${path}" == /* || "${path}" == project/* ]]; then
+    printf '%s\n' "${path}"
     return 0
   fi
-
-  if UseTestDirs; then
-    printf 'project/test\n'
-  else
-    printf 'project\n'
-  fi
+  printf '%s/%s\n' "${root}" "${path}"
 }
 
 function ResolveIncDir() {
-  local base
-  base="$(ResolveBaseDir)"
-  if [[ -n "${_OPT_PATH}" ]]; then
-    printf '%s\n' "${base}"
+  local root
+  if [[ -z "${_OPT_PATH}" ]]; then
+    if UseTestDirs; then
+      printf '%s\n' "${_DEFAULT_TEST_INC}"
+    else
+      printf '%s\n' "${_DEFAULT_INC}"
+    fi
     return 0
   fi
   if UseTestDirs; then
-    printf '%s\n' "${_DEFAULT_TEST_INC}"
+    root="${_DEFAULT_TEST_INC}"
   else
-    printf '%s\n' "${_DEFAULT_INC}"
+    root="${_DEFAULT_INC}"
   fi
+  JoinPathUnderRoot "${root}"
 }
 
 function ResolveSrcDir() {
-  local base
-  base="$(ResolveBaseDir)"
-  if [[ -n "${_OPT_PATH}" ]]; then
-    printf '%s\n' "${base}"
+  local root
+  if [[ -z "${_OPT_PATH}" ]]; then
+    if UseTestDirs; then
+      printf '%s\n' "${_DEFAULT_TEST_SRC}"
+    else
+      printf '%s\n' "${_DEFAULT_SRC}"
+    fi
     return 0
   fi
   if UseTestDirs; then
-    printf '%s\n' "${_DEFAULT_TEST_SRC}"
+    root="${_DEFAULT_TEST_SRC}"
   else
-    printf '%s\n' "${_DEFAULT_SRC}"
+    root="${_DEFAULT_SRC}"
   fi
+  JoinPathUnderRoot "${root}"
 }
 
-# Delete target dirs. If --path is set, --type is ignored.
-# --type ""/default -> production; --type test -> test.
+# Delete uses the same layout rules as create:
+# --type test -> project/test/{inc,src}/path
+# no type / default -> project/{inc,src}/path
 function ResolveDeleteIncDir() {
-  local saved_type="${_OPT_TYPE}" saved_set="${_OPT_TYPE_SET}"
-  if [[ -n "${_OPT_PATH}" ]]; then
-    _OPT_TYPE=""
-    _OPT_TYPE_SET=0
-  fi
   ResolveIncDir
-  _OPT_TYPE="${saved_type}"
-  _OPT_TYPE_SET="${saved_set}"
 }
 
 function ResolveDeleteSrcDir() {
-  local saved_type="${_OPT_TYPE}" saved_set="${_OPT_TYPE_SET}"
-  if [[ -n "${_OPT_PATH}" ]]; then
-    _OPT_TYPE=""
-    _OPT_TYPE_SET=0
-  fi
   ResolveSrcDir
-  _OPT_TYPE="${saved_type}"
-  _OPT_TYPE_SET="${saved_set}"
 }
 
 function ValidateDeleteArgs() {
@@ -448,7 +435,7 @@ function WriteSourceTemplate() {
     else
       guard="OUSIA_$(printf '%s' "${_OPT_FILE}" | tr '[:lower:]' '[:upper:]')_H"
     fi
-    cat > "${target}" <<EOF
+    cat >"${target}" <<EOF
 /* ${target} */
 #pragma once
 #ifndef ${guard}
@@ -458,11 +445,11 @@ function WriteSourceTemplate() {
 EOF
   else
     if [[ ${_OPT_NOT_H} -eq 1 ]]; then
-      cat > "${target}" <<EOF
+      cat >"${target}" <<EOF
 /* ${target} */
 EOF
     else
-      cat > "${target}" <<EOF
+      cat >"${target}" <<EOF
 /* ${target} */
 #include "${_OPT_FILE}.h"
 EOF

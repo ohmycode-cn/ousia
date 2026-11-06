@@ -28,6 +28,7 @@ output/bin/*
 compile_commands.json
 .cache_layout
 local.require.cmake
+.DS_Store
 
 #[FILE]: NORMAL
 taskbook.txt

@@ -14,6 +14,9 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(UNIT_TEST "Build with unit test sources under project/test" ON)
+# Preprocessor gate for #ifdef UNIT_TEST_CTL in production sources (e.g. main.c).
+# Only applied when UNIT_TEST is ON; UNIT_TEST=OFF is always production-only.
+option(UNIT_TEST_CTL "Define UNIT_TEST_CTL when UNIT_TEST is ON" ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/bin)
 
@@ -76,4 +79,7 @@ target_include_directories(ousia PRIVATE ${OUSA_HEADER_INCLUDE_DIRS})
 
 if(UNIT_TEST)
   target_compile_definitions(ousia PRIVATE UNIT_TEST=1)
+  if(UNIT_TEST_CTL)
+    target_compile_definitions(ousia PRIVATE UNIT_TEST_CTL=1)
+  endif()
 endif()
